@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { ArrowLeft, Plus, Trash2, Save, Camera, User } from 'lucide-react';
+import { Trash2, Save, Camera, User, Upload, ImagePlus } from 'lucide-react';
 import Avatar from '../components/Avatar';
 
 const EMOJI_OPTIONS = ['👦', '👧', '👶', '🦸', '🧚', '🐼', '🐯', '🐰', '🦁', '🦄', '🎀', '⚽'];
@@ -114,63 +114,72 @@ const Settings = () => {
 
                 {/* Avatar Selection */}
                 <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>头像</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)' }}>
-                        <div style={{ position: 'relative' }}>
+                    <label style={{ display: 'block', marginBottom: '12px', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>头像</label>
+
+                    {/* Current Avatar Preview */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-md)' }}>
+                        <div style={{
+                            position: 'relative',
+                            border: '3px solid var(--color-primary)',
+                            borderRadius: '50%',
+                            padding: '4px'
+                        }}>
                             <Avatar avatar={formData.avatar} size="5rem" />
+                        </div>
+
+                        {/* Upload Photo Button - PROMINENT */}
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="btn btn-primary"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '12px 20px'
+                            }}
+                        >
+                            <ImagePlus size={20} />
+                            上传照片
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleImageUpload}
+                            style={{ display: 'none' }}
+                        />
+                    </div>
+
+                    {/* Or choose emoji */}
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', marginBottom: '8px' }}>
+                        或选择表情头像：
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {EMOJI_OPTIONS.map(emoji => (
                             <button
-                                onClick={() => fileInputRef.current?.click()}
+                                key={emoji}
+                                onClick={() => setFormData({ ...formData, avatar: emoji })}
                                 style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    right: 0,
-                                    width: '28px',
-                                    height: '28px',
+                                    fontSize: '1.5rem',
+                                    background: formData.avatar === emoji ? 'var(--color-primary)' : 'var(--glass-bg)',
+                                    border: formData.avatar === emoji ? '2px solid var(--color-secondary)' : '2px solid transparent',
                                     borderRadius: '50%',
-                                    background: 'var(--gradient-primary)',
-                                    border: 'none',
+                                    width: '44px',
+                                    height: '44px',
                                     cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
+                                    transition: 'all 0.2s'
                                 }}
                             >
-                                <Camera size={14} color="white" />
+                                {emoji}
                             </button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                accept="image/*"
-                                onChange={handleImageUpload}
-                                style={{ display: 'none' }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {EMOJI_OPTIONS.map(emoji => (
-                                <button
-                                    key={emoji}
-                                    onClick={() => setFormData({ ...formData, avatar: emoji })}
-                                    style={{
-                                        fontSize: '1.5rem',
-                                        background: formData.avatar === emoji ? 'var(--color-primary)' : 'var(--glass-bg)',
-                                        border: 'none',
-                                        borderRadius: '50%',
-                                        width: '40px',
-                                        height: '40px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {emoji}
-                                </button>
-                            ))}
-                        </div>
+                        ))}
                     </div>
                 </div>
 
                 {/* Name Input */}
                 <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>名字</label>
+                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>名字 *</label>
                     <input
                         type="text"
                         value={formData.name}
@@ -178,10 +187,10 @@ const Settings = () => {
                         placeholder="例如：萱萱"
                         style={{
                             width: '100%',
-                            padding: '12px 16px',
+                            padding: '14px 16px',
                             borderRadius: 'var(--radius-sm)',
-                            border: 'var(--glass-border)',
-                            background: 'var(--glass-bg)',
+                            border: '2px solid rgba(255,255,255,0.1)',
+                            background: 'rgba(0,0,0,0.2)',
                             color: 'var(--color-text-primary)',
                             fontSize: 'var(--font-size-base)',
                             outline: 'none'
@@ -199,24 +208,27 @@ const Settings = () => {
                         placeholder="用逗号分隔，例如：小萱, 宣宣"
                         style={{
                             width: '100%',
-                            padding: '12px 16px',
+                            padding: '14px 16px',
                             borderRadius: 'var(--radius-sm)',
-                            border: 'var(--glass-border)',
-                            background: 'var(--glass-bg)',
+                            border: '2px solid rgba(255,255,255,0.1)',
+                            background: 'rgba(0,0,0,0.2)',
                             color: 'var(--color-text-primary)',
                             fontSize: 'var(--font-size-base)',
                             outline: 'none'
                         }}
                     />
+                    <div style={{ marginTop: '6px', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                        💡 添加多个别名可以提高语音识别准确率
+                    </div>
                 </div>
 
                 {/* Buttons */}
                 <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-                    <button className="btn btn-primary" onClick={handleSave} disabled={!formData.name} style={{ flex: 1 }}>
+                    <button className="btn btn-primary" onClick={handleSave} disabled={!formData.name} style={{ flex: 1, padding: '14px' }}>
                         <Save size={18} /> 保存
                     </button>
                     {editingId && (
-                        <button className="btn" onClick={handleCancel} style={{ background: 'var(--glass-bg)', color: 'var(--color-text-primary)' }}>
+                        <button className="btn" onClick={handleCancel} style={{ background: 'var(--glass-bg)', color: 'var(--color-text-primary)', padding: '14px 24px' }}>
                             取消
                         </button>
                     )}
