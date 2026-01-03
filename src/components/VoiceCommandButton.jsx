@@ -1,171 +1,121 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Mic, MicOff, AlertCircle, Volume2, WifiOff } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Mic, MicOff, AlertCircle, Volume2 } from 'lucide-react';
+import { SpeechRecognition } from "@capacitor-community/speech-recognition";
+import { Capacitor } from '@capacitor/core';
 
 const VoiceCommandButton = ({ onCommand }) => {
     const [isListening, setIsListening] = useState(false);
     const [error, setError] = useState(null);
-    const [isSupported, setIsSupported] = useState(true);
     const [statusText, setStatusText] = useState('点击开始说话');
-    const recognitionRef = useRef(null);
-    const timeoutRef = useRef(null);
+    const [hasPermission, setHasPermission] = useState(false);
 
-    const cleanup = useCallback(() => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-        }
-    }, []);
-
-    const initRecognition = useCallback(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (!SpeechRecognition) {
-            setIsSupported(false);
-            setError('此设备不支持语音识别');
-            return null;
-        }
-
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.lang = 'zh-CN';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => {
-            cleanup();
-            setIsListening(true);
-            setError(null);
-            setStatusText('🎙️ 正在聆听...');
-        };
-
-        recognition.onend = () => {
-            cleanup();
-            setIsListening(false);
-            setStatusText('点击开始说话');
-        };
-
-        recognition.onresult = (event) => {
-            cleanup();
-            const transcript = event.results[0][0].transcript;
-            setStatusText('✅ 识别成功');
-            if (onCommand) {
-                onCommand(transcript);
-            }
-        };
-
-        recognition.onerror = (event) => {
-            cleanup();
-            setIsListening(false);
-
-            switch (event.error) {
-                case 'not-allowed':
-                case 'permission-denied':
-                    setError('麦克风权限被拒绝');
-                    setStatusText('请在系统设置中开启');
-                    break;
-                case 'no-speech':
-                    setError(null);
-                    setStatusText('没有检测到语音');
-                    break;
-                case 'network':
-                    setError('需要网络连接');
-                    setStatusText('语音识别需要联网');
-                    break;
-                case 'audio-capture':
-                    setError('无法获取麦克风');
-                    break;
-                case 'service-not-allowed':
-                    setError('语音服务不可用');
-                    setStatusText('此设备不支持语音识别');
-                    setIsSupported(false);
-                    break;
-                case 'aborted':
-                    setStatusText('点击开始说话');
-                    break;
-                default:
-                    setError(`错误: ${event.error}`);
-            }
-        };
-
-        return recognition;
-    }, [onCommand, cleanup]);
+    const isNative = Capacitor.isNativePlatform();
 
     useEffect(() => {
-        recognitionRef.current = initRecognition();
-        return () => {
-            cleanup();
-            if (recognitionRef.current) {
-                try { recognitionRef.current.abort(); } catch (e) { }
-            }
-        };
-    }, [initRecognition, cleanup]);
+        if (isNative) {
+            // Check specific permission for Android 11+ compatibility if needed
+            // But plugin's requestPermission() usually handles it.
+            SpeechRecognition.available().catch(() => {
+                setError("语音识别服务不可用");
+            });
+        }
+    }, [isNative]);
 
-    const handleClick = () => {
+    const startListening = async () => {
         setError(null);
+        setStatusText('正在启动...');
 
-        if (!isSupported) {
-            setError('此设备不支持语音识别');
-            setStatusText('请使用支持语音的浏览器');
-            return;
-        }
-
-        if (isListening) {
-            cleanup();
-            try { recognitionRef.current?.stop(); } catch (e) { }
-            setIsListening(false);
-            setStatusText('点击开始说话');
-            return;
-        }
-
-        if (!recognitionRef.current) {
-            recognitionRef.current = initRecognition();
-        }
-
-        if (recognitionRef.current) {
-            setStatusText('正在启动...');
-
-            // Set a timeout - if nothing happens in 3 seconds, show error
-            timeoutRef.current = setTimeout(() => {
-                if (!isListening) {
-                    setError('启动超时');
-                    setStatusText('语音服务可能不可用');
-                    setIsListening(false);
-                    try { recognitionRef.current?.abort(); } catch (e) { }
+        try {
+            if (isNative) {
+                // Native Implementation
+                const hasPerm = await SpeechRecognition.hasPermission();
+                if (!hasPerm.permission) {
+                    await SpeechRecognition.requestPermission();
                 }
-            }, 3000);
 
-            try {
-                recognitionRef.current.start();
-            } catch (e) {
-                cleanup();
-                if (e.message?.includes('already started')) {
-                    try {
-                        recognitionRef.current.stop();
-                        setTimeout(() => {
-                            try { recognitionRef.current?.start(); } catch (e2) { }
-                        }, 100);
-                    } catch (e2) { }
-                } else {
-                    setError('启动失败');
-                    setStatusText('请检查麦克风权限');
+                setIsListening(true);
+                setStatusText('🎙️ 正在聆听...');
+
+                // Native plugin handles the UI/Mic internally usually on Android
+                // But we can show our UI too.
+                const { matches } = await SpeechRecognition.start({
+                    language: "zh-CN",
+                    maxResults: 1,
+                    prompt: "请说出指令...", // Android only
+                    popup: true, // Android only: shows native popup. User wanted "click mic -> speak".
+                    // If "popup: false", we handle UI. If true, Google's dialogn shows.
+                    // User said "program interface doesn't show keyboard", imply maybe native UI is OK?
+                    // "user just clicks mic in program to speak".
+                    // Let's try popup:false for seamless feel if possible, but popup:true is safer.
+                    // Re-reading user: "click mic, background opens keyboard, auto hold..." -> logic: he wants system voice input.
+                    // The native plugin effectively DOES this by calling SpeechRecognizer.
+                    // Let's use standard native behavior.
+                });
+
+                if (matches && matches.length > 0) {
+                    const text = matches[0];
+                    setStatusText('✅ 识别成功');
+                    onCommand(text);
                 }
+
+                setIsListening(false);
+                setStatusText('点击开始说话');
+
+            } else {
+                // Web Fallback (for dev on PC)
+                const SpeechRecognitionWeb = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognitionWeb) {
+                    setError('浏览器不支持');
+                    return;
+                }
+                const recognition = new SpeechRecognitionWeb();
+                recognition.lang = 'zh-CN';
+                recognition.onstart = () => {
+                    setIsListening(true);
+                    setStatusText('🎙️ 正在聆听 (Web)...');
+                };
+                recognition.onend = () => setIsListening(false);
+                recognition.onresult = (e) => onCommand(e.results[0][0].transcript);
+                recognition.start();
             }
+        } catch (e) {
+            console.error(e);
+            setIsListening(false);
+            setError(e.message || '识别失败');
+            setStatusText('点击重试');
+        }
+    };
+
+    const stopListening = async () => {
+        try {
+            if (isNative) {
+                await SpeechRecognition.stop();
+            }
+            setIsListening(false);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const toggleListen = () => {
+        if (isListening) {
+            stopListening();
+        } else {
+            startListening();
         }
     };
 
     return (
         <div style={{ textAlign: 'center', margin: 'var(--spacing-xl) 0' }}>
             <button
-                onClick={handleClick}
+                onClick={toggleListen}
                 style={{
                     width: '100px',
                     height: '100px',
                     borderRadius: '50%',
-                    background: !isSupported
-                        ? 'linear-gradient(135deg, #555 0%, #333 100%)'
-                        : isListening
-                            ? 'linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%)'
-                            : 'linear-gradient(135deg, #6C63FF 0%, #00D9FF 100%)',
+                    background: isListening
+                        ? 'linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%)'
+                        : 'linear-gradient(135deg, #6C63FF 0%, #00D9FF 100%)',
                     color: 'white',
                     border: 'none',
                     boxShadow: isListening
@@ -179,7 +129,7 @@ const VoiceCommandButton = ({ onCommand }) => {
                     transform: isListening ? 'scale(1.1)' : 'scale(1)'
                 }}
             >
-                {!isSupported ? <WifiOff size={40} /> : isListening ? <Volume2 size={40} /> : <Mic size={40} />}
+                {isListening ? <Volume2 size={40} /> : <Mic size={40} />}
             </button>
 
             <p style={{
@@ -195,19 +145,6 @@ const VoiceCommandButton = ({ onCommand }) => {
                     </span>
                 ) : statusText}
             </p>
-
-            {/* Hint for Android users */}
-            {!isSupported && (
-                <p style={{
-                    marginTop: 'var(--spacing-sm)',
-                    color: 'var(--color-text-muted)',
-                    fontSize: 'var(--font-size-xs)',
-                    maxWidth: '200px',
-                    margin: '8px auto 0'
-                }}>
-                    💡 提示：部分安卓设备需要使用 Chrome 浏览器访问才能使用语音功能
-                </p>
-            )}
 
             {isListening && (
                 <div style={{
@@ -231,13 +168,7 @@ const VoiceCommandButton = ({ onCommand }) => {
                     ))}
                 </div>
             )}
-
-            <style>{`
-                @keyframes soundwave {
-                    from { transform: scaleY(0.3); }
-                    to { transform: scaleY(1); }
-                }
-            `}</style>
+            <style>{`@keyframes soundwave { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }`}</style>
         </div>
     );
 };
