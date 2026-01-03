@@ -242,4 +242,6 @@ const VoiceCommandButton = ({ onCommand }) => {
     );
 };
 
+VoiceCommandButton.Icon = Mic;
+
 export default VoiceCommandButton;

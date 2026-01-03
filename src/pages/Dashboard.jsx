@@ -74,81 +74,111 @@ const Dashboard = () => {
                 ))}
             </section>
 
-            {/* Voice Command & Text Input */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', margin: 'var(--spacing-xl) 0' }}>
+            {/* Main Interaction Area */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'var(--spacing-xl) 0' }}>
                 {!showKeyboardInput ? (
-                    <>
-                        <VoiceCommandButton onCommand={handleVoiceCommand} />
+                    <div className="voice-control-container" style={{ textAlign: 'center' }}>
                         <button
                             onClick={() => setShowKeyboardInput(true)}
+                            className="btn-voice-trigger"
                             style={{
-                                background: 'transparent',
+                                width: '100px',
+                                height: '100px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #6C63FF 0%, #00D9FF 100%)',
+                                color: 'white',
                                 border: 'none',
-                                color: 'var(--color-text-muted)',
-                                textDecoration: 'underline',
+                                boxShadow: '0 10px 40px rgba(108, 99, 255, 0.4)',
                                 cursor: 'pointer',
-                                fontSize: 'var(--font-size-sm)',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px'
+                                justifyContent: 'center',
+                                transition: 'all 0.3s ease',
+                                transform: 'scale(1)'
                             }}
                         >
-                            <Keyboard size={16} /> 切换到键盘输入
+                            <VoiceCommandButton.Icon size={40} />
                         </button>
-                    </>
-                ) : (
-                    <div className="card" style={{ width: '100%', maxWidth: '400px', padding: 'var(--spacing-md)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <label style={{ fontWeight: 600 }}>手动输入指令</label>
-                            <button
-                                onClick={() => setShowKeyboardInput(false)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-                        <textarea
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            placeholder="输入如：给萱萱加10分，因为帮妈妈做家务"
-                            style={{
-                                width: '100%',
-                                height: '80px',
-                                padding: '10px',
-                                borderRadius: 'var(--radius-sm)',
-                                border: 'var(--glass-border)',
-                                background: 'var(--glass-bg)',
-                                color: 'var(--color-text-primary)',
-                                marginBottom: '10px',
-                                resize: 'none'
-                            }}
-                        />
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                            <button
-                                className="btn"
-                                onClick={() => {
-                                    // Use system voice input logic here? No, just text.
-                                    // Actually, focusing textarea on mobile brings up keyboard with mic.
-                                }}
-                                style={{ visibility: 'hidden' }} // Placeholder
-                            >
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => {
-                                    if (inputText.trim()) {
-                                        handleVoiceCommand(inputText);
-                                        setInputText('');
-                                    }
-                                }}
-                                disabled={!inputText.trim()}
-                            >
-                                发送指令
-                            </button>
-                        </div>
-                        <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '8px' }}>
-                            💡 提示：点击输入框，使用键盘上的麦克风图标也可以语音输入哦！
+                        <p style={{
+                            marginTop: 'var(--spacing-md)',
+                            color: 'var(--color-text-secondary)',
+                            fontWeight: 600,
+                            fontSize: 'var(--font-size-sm)'
+                        }}>
+                            点击说话 (调用系统输入法)
                         </p>
+                    </div>
+                ) : (
+                    <div className="input-overlay" style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(5px)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-end',
+                        paddingBottom: '20px'
+                    }}>
+                        <div
+                            className="card animate-slide-up"
+                            style={{
+                                margin: '20px',
+                                background: 'var(--color-bg-secondary)',
+                                border: '1px solid var(--glass-border)'
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                <label style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '1.5rem' }}>⌨️</span> 请点击键盘上的麦克风
+                                </label>
+                                <button
+                                    onClick={() => setShowKeyboardInput(false)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <textarea
+                                autoFocus
+                                value={inputText}
+                                onChange={(e) => setInputText(e.target.value)}
+                                placeholder="在此处语音输入..."
+                                style={{
+                                    width: '100%',
+                                    height: '120px',
+                                    padding: '16px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '2px solid var(--color-primary)',
+                                    background: 'var(--color-bg-primary)',
+                                    color: 'var(--color-text-primary)',
+                                    marginBottom: '16px',
+                                    fontSize: '1.2rem',
+                                    resize: 'none'
+                                }}
+                            />
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                        if (inputText.trim()) {
+                                            handleVoiceCommand(inputText);
+                                            setInputText('');
+                                            setShowKeyboardInput(false);
+                                        }
+                                    }}
+                                    disabled={!inputText.trim()}
+                                    style={{ flex: 1, padding: '16px', fontSize: '1.1rem' }}
+                                >
+                                    发送指令
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
