@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Mic, MicOff, AlertCircle, Volume2 } from 'lucide-react';
+import { Mic, MicOff, AlertCircle, Volume2, WifiOff } from 'lucide-react';
 
 const VoiceCommandButton = ({ onCommand }) => {
     const [isListening, setIsListening] = useState(false);
@@ -7,7 +7,14 @@ const VoiceCommandButton = ({ onCommand }) => {
     const [isSupported, setIsSupported] = useState(true);
     const [statusText, setStatusText] = useState('点击开始说话');
     const recognitionRef = useRef(null);
-    const isInitializedRef = useRef(false);
+    const timeoutRef = useRef(null);
+
+    const cleanup = useCallback(() => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+    }, []);
 
     const initRecognition = useCallback(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -25,21 +32,21 @@ const VoiceCommandButton = ({ onCommand }) => {
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
-            console.log('Speech recognition started');
+            cleanup();
             setIsListening(true);
             setError(null);
             setStatusText('🎙️ 正在聆听...');
         };
 
         recognition.onend = () => {
-            console.log('Speech recognition ended');
+            cleanup();
             setIsListening(false);
             setStatusText('点击开始说话');
         };
 
         recognition.onresult = (event) => {
+            cleanup();
             const transcript = event.results[0][0].transcript;
-            console.log('Voice result:', transcript);
             setStatusText('✅ 识别成功');
             if (onCommand) {
                 onCommand(transcript);
@@ -47,107 +54,100 @@ const VoiceCommandButton = ({ onCommand }) => {
         };
 
         recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
+            cleanup();
             setIsListening(false);
 
             switch (event.error) {
                 case 'not-allowed':
                 case 'permission-denied':
                     setError('麦克风权限被拒绝');
-                    setStatusText('请在设置中开启麦克风权限');
+                    setStatusText('请在系统设置中开启');
                     break;
                 case 'no-speech':
                     setError(null);
-                    setStatusText('没有检测到语音，请再试');
+                    setStatusText('没有检测到语音');
                     break;
                 case 'network':
-                    setError('网络错误');
-                    setStatusText('请检查网络连接');
+                    setError('需要网络连接');
+                    setStatusText('语音识别需要联网');
                     break;
                 case 'audio-capture':
                     setError('无法获取麦克风');
-                    setStatusText('请检查麦克风设备');
+                    break;
+                case 'service-not-allowed':
+                    setError('语音服务不可用');
+                    setStatusText('此设备不支持语音识别');
+                    setIsSupported(false);
                     break;
                 case 'aborted':
                     setStatusText('点击开始说话');
                     break;
                 default:
                     setError(`错误: ${event.error}`);
-                    setStatusText('点击重试');
             }
-        };
-
-        recognition.onspeechstart = () => {
-            console.log('Speech detected');
-            setStatusText('🗣️ 检测到语音...');
-        };
-
-        recognition.onspeechend = () => {
-            console.log('Speech ended');
-            setStatusText('⏳ 正在识别...');
         };
 
         return recognition;
-    }, [onCommand]);
+    }, [onCommand, cleanup]);
 
     useEffect(() => {
-        if (!isInitializedRef.current) {
-            recognitionRef.current = initRecognition();
-            isInitializedRef.current = true;
-        }
-
+        recognitionRef.current = initRecognition();
         return () => {
+            cleanup();
             if (recognitionRef.current) {
-                try {
-                    recognitionRef.current.abort();
-                } catch (e) { }
+                try { recognitionRef.current.abort(); } catch (e) { }
             }
         };
-    }, [initRecognition]);
+    }, [initRecognition, cleanup]);
 
     const handleClick = () => {
         setError(null);
 
         if (!isSupported) {
             setError('此设备不支持语音识别');
+            setStatusText('请使用支持语音的浏览器');
             return;
         }
 
         if (isListening) {
-            console.log('Stopping recognition...');
-            try {
-                recognitionRef.current?.stop();
-            } catch (e) {
-                console.error('Stop error:', e);
-            }
+            cleanup();
+            try { recognitionRef.current?.stop(); } catch (e) { }
+            setIsListening(false);
+            setStatusText('点击开始说话');
             return;
         }
 
-        // Re-initialize if needed
         if (!recognitionRef.current) {
             recognitionRef.current = initRecognition();
         }
 
         if (recognitionRef.current) {
-            console.log('Starting recognition...');
             setStatusText('正在启动...');
+
+            // Set a timeout - if nothing happens in 3 seconds, show error
+            timeoutRef.current = setTimeout(() => {
+                if (!isListening) {
+                    setError('启动超时');
+                    setStatusText('语音服务可能不可用');
+                    setIsListening(false);
+                    try { recognitionRef.current?.abort(); } catch (e) { }
+                }
+            }, 3000);
+
             try {
                 recognitionRef.current.start();
             } catch (e) {
-                console.error('Start error:', e);
+                cleanup();
                 if (e.message?.includes('already started')) {
                     try {
                         recognitionRef.current.stop();
                         setTimeout(() => {
-                            recognitionRef.current?.start();
+                            try { recognitionRef.current?.start(); } catch (e2) { }
                         }, 100);
-                    } catch (e2) {
-                        setError('启动失败，请重试');
-                        setStatusText('点击重试');
-                    }
+                    } catch (e2) { }
                 } else {
                     setError('启动失败');
-                    setStatusText('点击重试');
+                    setStatusText('请检查麦克风权限');
                 }
             }
         }
@@ -157,29 +157,29 @@ const VoiceCommandButton = ({ onCommand }) => {
         <div style={{ textAlign: 'center', margin: 'var(--spacing-xl) 0' }}>
             <button
                 onClick={handleClick}
-                disabled={!isSupported}
                 style={{
                     width: '100px',
                     height: '100px',
                     borderRadius: '50%',
-                    background: isListening
-                        ? 'linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%)'
-                        : 'linear-gradient(135deg, #6C63FF 0%, #00D9FF 100%)',
+                    background: !isSupported
+                        ? 'linear-gradient(135deg, #555 0%, #333 100%)'
+                        : isListening
+                            ? 'linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%)'
+                            : 'linear-gradient(135deg, #6C63FF 0%, #00D9FF 100%)',
                     color: 'white',
                     border: 'none',
                     boxShadow: isListening
                         ? '0 0 0 20px rgba(255, 107, 157, 0.15), 0 0 40px rgba(255, 107, 157, 0.3)'
                         : '0 10px 40px rgba(108, 99, 255, 0.4)',
-                    cursor: isSupported ? 'pointer' : 'not-allowed',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'all 0.3s ease',
-                    transform: isListening ? 'scale(1.1)' : 'scale(1)',
-                    opacity: isSupported ? 1 : 0.5
+                    transform: isListening ? 'scale(1.1)' : 'scale(1)'
                 }}
             >
-                {isListening ? <Volume2 size={40} /> : <Mic size={40} />}
+                {!isSupported ? <WifiOff size={40} /> : isListening ? <Volume2 size={40} /> : <Mic size={40} />}
             </button>
 
             <p style={{
@@ -195,6 +195,19 @@ const VoiceCommandButton = ({ onCommand }) => {
                     </span>
                 ) : statusText}
             </p>
+
+            {/* Hint for Android users */}
+            {!isSupported && (
+                <p style={{
+                    marginTop: 'var(--spacing-sm)',
+                    color: 'var(--color-text-muted)',
+                    fontSize: 'var(--font-size-xs)',
+                    maxWidth: '200px',
+                    margin: '8px auto 0'
+                }}>
+                    💡 提示：部分安卓设备需要使用 Chrome 浏览器访问才能使用语音功能
+                </p>
+            )}
 
             {isListening && (
                 <div style={{
