@@ -148,6 +148,16 @@ const Dashboard = () => {
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder="在此处语音输入..."
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        if (inputText.trim()) {
+                                            handleVoiceCommand(inputText);
+                                            setInputText('');
+                                            setShowKeyboardInput(false);
+                                        }
+                                    }
+                                }}
                                 style={{
                                     width: '100%',
                                     height: '120px',
