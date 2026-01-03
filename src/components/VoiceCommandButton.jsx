@@ -12,13 +12,8 @@ const VoiceCommandButton = ({ onCommand }) => {
     const isNative = Capacitor.isNativePlatform();
 
     useEffect(() => {
-        if (isNative) {
-            // Check specific permission for Android 11+ compatibility if needed
-            // But plugin's requestPermission() usually handles it.
-            SpeechRecognition.available().catch(() => {
-                setError("语音识别服务不可用");
-            });
-        }
+        // The SpeechRecognition.available() check is removed as per instruction.
+        // Permission checks are now handled directly in startListening.
     }, [isNative]);
 
     const startListening = async () => {
@@ -28,9 +23,14 @@ const VoiceCommandButton = ({ onCommand }) => {
         try {
             if (isNative) {
                 // Native Implementation
-                const { permission } = await SpeechRecognition.checkPermissions();
-                if (!permission) {
-                    await SpeechRecognition.requestPermissions();
+                try {
+                    const status = await SpeechRecognition.checkPermissions();
+                    if (status.speechRecognition !== 'granted') {
+                        await SpeechRecognition.requestPermissions();
+                    }
+                } catch (permError) {
+                    console.warn("Permission check failed, trying to start anyway:", permError);
+                    // On some devices/versions, straight to start() works if manifest is correct
                 }
 
                 setIsListening(true);
