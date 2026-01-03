@@ -49,10 +49,19 @@ const VoiceCommandButton = ({ onCommand }) => {
         }
     }, [onCommand]);
 
-    const toggleListen = () => {
+    const toggleListen = async () => {
         if (isListening) {
             recognitionRef.current?.stop();
         } else {
+            // Request microphone permission explicitly
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (permError) {
+                console.error('Microphone permission denied', permError);
+                setError('请允许麦克风权限');
+                return;
+            }
+
             if (recognitionRef.current) {
                 try {
                     recognitionRef.current.start();
