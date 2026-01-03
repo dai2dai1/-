@@ -3,11 +3,13 @@ import { useAppContext } from '../context/AppContext';
 import { parseCommand } from '../utils/speechParser';
 import VoiceCommandButton from '../components/VoiceCommandButton';
 import Avatar from '../components/Avatar';
-import { Trophy, Sparkles } from 'lucide-react';
+import { Trophy, Sparkles, X } from 'lucide-react';
 
 const Dashboard = () => {
     const { kids, addPoints, history } = useAppContext();
     const [lastAction, setLastAction] = useState(null);
+    const [showKeyboardInput, setShowKeyboardInput] = useState(false);
+    const [inputText, setInputText] = useState('');
 
     const handleVoiceCommand = (text) => {
         const result = parseCommand(text, kids);
@@ -73,7 +75,113 @@ const Dashboard = () => {
             </section>
 
             {/* Main Interaction Area */}
-            <VoiceCommandButton onCommand={handleVoiceCommand} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'var(--spacing-xl) 0' }}>
+                {!showKeyboardInput ? (
+                    <div className="voice-control-container" style={{ textAlign: 'center' }}>
+                        <button
+                            onClick={() => setShowKeyboardInput(true)}
+                            className="btn-voice-trigger"
+                            style={{
+                                width: '100px',
+                                height: '100px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #6C63FF 0%, #00D9FF 100%)',
+                                color: 'white',
+                                border: 'none',
+                                boxShadow: '0 10px 40px rgba(108, 99, 255, 0.4)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.3s ease',
+                                transform: 'scale(1)'
+                            }}
+                        >
+                            <VoiceCommandButton.Icon size={40} />
+                        </button>
+                        <p style={{
+                            marginTop: 'var(--spacing-md)',
+                            color: 'var(--color-text-secondary)',
+                            fontWeight: 600,
+                            fontSize: 'var(--font-size-sm)'
+                        }}>
+                            点击说话 (调用系统输入法)
+                        </p>
+                    </div>
+                ) : (
+                    <div className="input-overlay" style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(5px)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-end',
+                        paddingBottom: '20px'
+                    }}>
+                        <div
+                            className="card animate-slide-up"
+                            style={{
+                                margin: '20px',
+                                background: 'var(--color-bg-secondary)',
+                                border: '1px solid var(--glass-border)'
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                <label style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '1.5rem' }}>⌨️</span> 请点击键盘上的麦克风
+                                </label>
+                                <button
+                                    onClick={() => setShowKeyboardInput(false)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <textarea
+                                autoFocus
+                                value={inputText}
+                                onChange={(e) => setInputText(e.target.value)}
+                                placeholder="在此处语音输入..."
+                                style={{
+                                    width: '100%',
+                                    height: '120px',
+                                    padding: '16px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '2px solid var(--color-primary)',
+                                    background: 'var(--color-bg-primary)',
+                                    color: 'var(--color-text-primary)',
+                                    marginBottom: '16px',
+                                    fontSize: '1.2rem',
+                                    resize: 'none'
+                                }}
+                            />
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                        if (inputText.trim()) {
+                                            handleVoiceCommand(inputText);
+                                            setInputText('');
+                                            setShowKeyboardInput(false);
+                                        }
+                                    }}
+                                    disabled={!inputText.trim()}
+                                    style={{ flex: 1, padding: '16px', fontSize: '1.1rem' }}
+                                >
+                                    发送指令
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Feedback Message */}
             {lastAction && (
