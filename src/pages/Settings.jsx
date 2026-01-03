@@ -145,7 +145,6 @@ const Settings = () => {
                             type="file"
                             ref={fileInputRef}
                             accept="image/*"
-                            capture="environment"
                             onChange={handleImageUpload}
                             style={{ display: 'none' }}
                         />
