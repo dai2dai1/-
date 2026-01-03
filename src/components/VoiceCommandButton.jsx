@@ -28,9 +28,9 @@ const VoiceCommandButton = ({ onCommand }) => {
         try {
             if (isNative) {
                 // Native Implementation
-                const hasPerm = await SpeechRecognition.hasPermission();
-                if (!hasPerm.permission) {
-                    await SpeechRecognition.requestPermission();
+                const { permission } = await SpeechRecognition.checkPermissions();
+                if (!permission) {
+                    await SpeechRecognition.requestPermissions();
                 }
 
                 setIsListening(true);
