@@ -1,18 +1,15 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { parseCommand } from '../utils/speechParser';
 import VoiceCommandButton from '../components/VoiceCommandButton';
-import ChartsSection from '../components/ChartsSection';
 import Avatar from '../components/Avatar';
-import { Trophy, History } from 'lucide-react';
+import { Trophy, Sparkles } from 'lucide-react';
 
 const Dashboard = () => {
     const { kids, addPoints, history } = useAppContext();
     const [lastAction, setLastAction] = useState(null);
 
     const handleVoiceCommand = (text) => {
-        // Pass full kids object for alias matching
         const result = parseCommand(text, kids);
 
         if (result.success) {
@@ -24,7 +21,6 @@ const Dashboard = () => {
                     reason: result.reason
                 });
 
-                // Speak result
                 const utter = new SpeechSynthesisUtterance(`好的，已给${result.name}${result.points > 0 ? '加' : '扣'}${Math.abs(result.points)}分`);
                 utter.lang = 'zh-CN';
                 window.speechSynthesis.speak(utter);
@@ -37,78 +33,103 @@ const Dashboard = () => {
             });
         }
 
-        // Clear message after 5s
         setTimeout(() => setLastAction(null), 5000);
     };
 
     return (
-        <div className="dashboard" style={{ padding: 'var(--spacing-md)', maxWidth: '800px', margin: '0 auto' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
-                <h1 style={{ color: 'var(--color-primary)', margin: 0 }}>儿童成长助手</h1>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <Link to="/shop" style={{ fontSize: '2rem', textDecoration: 'none' }} title="积分商城">🛍️</Link>
-                    <Link to="/settings" style={{ fontSize: '2rem', textDecoration: 'none' }} title="成员管理">⚙️</Link>
-                    <Link to="/rules" style={{ fontSize: '2rem', textDecoration: 'none' }} title="规则模板">🏡</Link>
+        <div className="page-container fade-in">
+            {/* Header */}
+            <header style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Sparkles size={28} color="var(--color-warning)" />
+                    <h1 style={{ margin: 0, fontSize: 'var(--font-size-xl)', fontWeight: 800 }}>
+                        儿童成长助手
+                    </h1>
                 </div>
+                <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: 'var(--font-size-sm)' }}>
+                    点击麦克风，说出奖惩指令
+                </p>
             </header>
 
-            <section className="kids-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--spacing-md)' }}>
+            {/* Kids Cards */}
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-xl)' }}>
                 {kids.map(kid => (
-                    <div key={kid.id} className="card kid-card" style={{ textAlign: 'center', borderTop: `4px solid var(--color-secondary)` }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
-                            <Avatar avatar={kid.avatar} size="5rem" />
+                    <div key={kid.id} className="card card-premium" style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-md)' }}>
+                            <Avatar avatar={kid.avatar} size="4.5rem" />
                         </div>
-                        <h2 style={{ margin: '0.5rem 0' }}>{kid.name}</h2>
-                        <div className="points" style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--color-accent)' }}>
-                            {kid.points} 分
+                        <h2 style={{ margin: '0 0 8px', fontSize: 'var(--font-size-lg)', fontWeight: 700 }}>{kid.name}</h2>
+                        <div className="stat-value" style={{ fontSize: 'var(--font-size-2xl)' }}>
+                            {kid.points}
                         </div>
-                        <div className="rank-badge" style={{ marginTop: '5px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                            <Trophy size={16} style={{ verticalAlign: 'middle', marginRight: '4px', color: 'gold' }} />
-                            等级 {Math.floor(kid.points / 1000) + 1}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '8px' }}>
+                            <Trophy size={14} color="var(--color-warning)" />
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+                                Lv.{Math.floor(kid.points / 1000) + 1}
+                            </span>
                         </div>
                     </div>
                 ))}
             </section>
 
+            {/* Voice Command */}
             <VoiceCommandButton onCommand={handleVoiceCommand} />
 
+            {/* Feedback Message */}
             {lastAction && (
-                <div className={`card animate-pop`} style={{
-                    background: lastAction.type === 'success' ? '#fff' : '#fff0f0',
-                    borderLeft: `5px solid ${lastAction.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)'}`,
-                    marginBottom: 'var(--spacing-lg)'
+                <div className={`card fade-in`} style={{
+                    marginTop: 'var(--spacing-lg)',
+                    background: lastAction.type === 'success'
+                        ? 'rgba(0, 230, 118, 0.1)'
+                        : 'rgba(255, 82, 82, 0.1)',
+                    borderLeft: `4px solid ${lastAction.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)'}`,
                 }}>
-                    <h3 style={{ margin: '0 0 5px' }}>
-                        {lastAction.type === 'success' ? '🎉在这里！' : '🤔 嗯？'}
+                    <h3 style={{ margin: '0 0 8px', fontSize: 'var(--font-size-base)' }}>
+                        {lastAction.type === 'success' ? '✅ 操作成功' : '⚠️ 提示'}
                     </h3>
-                    <p style={{ margin: 0, fontSize: '1.1rem' }}>{lastAction.message}</p>
-                    {lastAction.reason && <p style={{ margin: '5px 0 0', color: 'var(--color-text-muted)' }}>"{lastAction.reason}"</p>}
+                    <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>{lastAction.message}</p>
+                    {lastAction.reason && (
+                        <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
+                            "{lastAction.reason}"
+                        </p>
+                    )}
                 </div>
             )}
 
-            <section className="recent-history">
-                <h3 style={{ borderBottom: '2px solid var(--color-background)', paddingBottom: '10px' }}>
-                    <History size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
-                    最近动态
+            {/* Recent Activity Preview */}
+            <section style={{ marginTop: 'var(--spacing-xl)' }}>
+                <h3 className="section-title" style={{ fontSize: 'var(--font-size-base)' }}>
+                    ⚡ 最近动态
                 </h3>
-                <div className="history-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {history.slice(0, 5).map(event => (
-                        <div key={event.id} className="card history-item" style={{ padding: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <span style={{ fontWeight: 'bold' }}>{event.childName}</span>
-                                <span style={{ margin: '0 8px', color: 'var(--color-text-muted)' }}>因</span>
-                                <span>{event.reason}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                    {history.slice(0, 3).map(event => (
+                        <div key={event.id} className="card" style={{
+                            padding: 'var(--spacing-sm) var(--spacing-md)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <Avatar avatar={kids.find(k => k.id === event.childId)?.avatar} size="2rem" />
+                                <div>
+                                    <span style={{ fontWeight: 600 }}>{event.childName}</span>
+                                    <span style={{ color: 'var(--color-text-muted)', marginLeft: '8px', fontSize: 'var(--font-size-sm)' }}>
+                                        {event.reason}
+                                    </span>
+                                </div>
                             </div>
-                            <div style={{ fontWeight: 'bold', color: event.points > 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                                {event.points > 0 ? '+' : ''}{event.points}
-                            </div>
+                            <span className={`points-badge ${event.points >= 0 ? 'positive' : 'negative'}`}>
+                                {event.points >= 0 ? '+' : ''}{event.points}
+                            </span>
                         </div>
                     ))}
-                    {history.length === 0 && <p style={{ color: 'var(--color-text-muted)', textAlign: 'center' }}>暂无记录</p>}
+                    {history.length === 0 && (
+                        <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
+                            暂无记录，试试说"给萱萱加10分"
+                        </p>
+                    )}
                 </div>
             </section>
-
-            <ChartsSection history={history} kids={kids} />
         </div>
     );
 };

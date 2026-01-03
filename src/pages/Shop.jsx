@@ -1,17 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, Plus, Trash2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import Avatar from '../components/Avatar';
+import { ShoppingBag, Plus, Trash2, Gift } from 'lucide-react';
 
-const EMOJI_ICONS = ['📺', '🍪', '🧸', '🎡', '📱', '🎮', '⚽', '🎨', '🍦', '🎁'];
+const EMOJI_ICONS = ['📺', '🍪', '🧸', '🎡', '📱', '🎮', '⚽', '🎨', '🍦', '🎁', '🎢', '🎪'];
 
 const Shop = () => {
-    const navigate = useNavigate();
     const { kids, rewards, addReward, deleteReward, redeemReward } = useAppContext();
-
-    // Selecting which child is redeeming
-    const [selectedChildId, setSelectedChildId] = useState(kids.length > 0 ? kids[0].id : null);
+    const [selectedChildId, setSelectedChildId] = useState(kids[0]?.id || null);
     const [isAddingMode, setIsAddingMode] = useState(false);
     const [newReward, setNewReward] = useState({ name: '', points: 100, icon: '🎁' });
 
@@ -19,11 +15,10 @@ const Shop = () => {
 
     const handleRedeem = (reward) => {
         if (!selectedChild) return;
-
         if (window.confirm(`确定要花费 ${reward.points} 分兑换 "${reward.name}" 吗？`)) {
             const result = redeemReward(selectedChild.id, reward);
             if (result.success) {
-                alert('兑换成功！🎉');
+                alert('🎉 兑换成功！');
             } else {
                 alert(`兑换失败：${result.error}`);
             }
@@ -39,77 +34,83 @@ const Shop = () => {
     };
 
     return (
-        <div className="page-container" style={{ padding: 'var(--spacing-md)', maxWidth: '800px', margin: '0 auto' }}>
-            <header style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
-                <button onClick={() => navigate('/')} className="btn" style={{ background: 'none', padding: 0, marginRight: '1rem' }}>
-                    <ArrowLeft size={32} color="var(--color-text-main)" />
-                </button>
-                <h1 style={{ margin: 0 }}>积分商城</h1>
+        <div className="page-container fade-in">
+            <header style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <h1 style={{ margin: 0, fontSize: 'var(--font-size-xl)' }}>
+                    <ShoppingBag size={24} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                    积分商城
+                </h1>
             </header>
 
             {/* Child Selector */}
             {kids.length > 1 && (
-                <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px', marginBottom: 'var(--spacing-md)' }}>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: 'var(--spacing-lg)', overflowX: 'auto', paddingBottom: '8px' }}>
                     {kids.map(kid => (
                         <button
                             key={kid.id}
-                            className="card"
                             onClick={() => setSelectedChildId(kid.id)}
+                            className="card"
                             style={{
-                                border: selectedChildId === kid.id ? '3px solid var(--color-primary)' : '3px solid transparent',
-                                opacity: selectedChildId === kid.id ? 1 : 0.6,
-                                padding: '10px',
-                                minWidth: '100px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
+                                gap: '8px',
+                                minWidth: '80px',
+                                opacity: selectedChildId === kid.id ? 1 : 0.5,
+                                border: selectedChildId === kid.id ? '2px solid var(--color-primary)' : 'var(--glass-border)',
                                 cursor: 'pointer'
                             }}
                         >
                             <Avatar avatar={kid.avatar} size="2.5rem" />
-                            <span style={{ fontWeight: 'bold' }}>{kid.name}</span>
+                            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>{kid.name}</span>
                         </button>
                     ))}
                 </div>
             )}
 
-            {/* Current Balance */}
+            {/* Balance Card */}
             {selectedChild && (
-                <div className="card" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))', color: 'white', marginBottom: 'var(--spacing-lg)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1rem', opacity: 0.9 }}>当前积分</div>
-                    <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>{selectedChild.points}</div>
-                    <div style={{ fontSize: '0.9rem' }}>想换点什么呢？</div>
+                <div className="card card-premium" style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+                        {selectedChild.name} 的积分余额
+                    </div>
+                    <div className="stat-value" style={{ margin: '8px 0' }}>{selectedChild.points}</div>
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                        <Gift size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                        选择下面的奖品兑换吧
+                    </div>
                 </div>
             )}
 
             {/* Rewards Grid */}
-            <div className="rewards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--spacing-md)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 'var(--spacing-md)' }}>
                 {rewards.map(reward => {
                     const canAfford = selectedChild && selectedChild.points >= reward.points;
                     return (
-                        <div key={reward.id} className="card" style={{ position: 'relative', opacity: canAfford ? 1 : 0.5, border: isAddingMode ? 'none' : 'auto' }}>
+                        <div key={reward.id} className="card" style={{ position: 'relative', opacity: canAfford ? 1 : 0.5, textAlign: 'center' }}>
                             <button
                                 onClick={() => deleteReward(reward.id)}
-                                style={{ position: 'absolute', top: 5, right: 5, background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}
+                                style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--color-text-muted)',
+                                    cursor: 'pointer',
+                                    opacity: 0.5
+                                }}
                             >
-                                <Trash2 size={14} />
+                                <Trash2 size={12} />
                             </button>
-
-                            <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                                <div style={{ fontSize: '3rem' }}>{reward.icon}</div>
-                                <h3 style={{ margin: '5px 0', fontSize: '1.1rem' }}>{reward.name}</h3>
-                                <div style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{reward.points} 分</div>
-                            </div>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>{reward.icon}</div>
+                            <h4 style={{ margin: '0 0 4px', fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>{reward.name}</h4>
+                            <div style={{ color: 'var(--color-warning)', fontWeight: 700, marginBottom: '12px' }}>{reward.points} 分</div>
                             <button
-                                className="btn"
+                                className={`btn ${canAfford ? 'btn-success' : ''}`}
                                 onClick={() => handleRedeem(reward)}
                                 disabled={!canAfford}
-                                style={{
-                                    width: '100%',
-                                    background: canAfford ? 'var(--color-success)' : '#ccc',
-                                    color: 'white',
-                                    fontSize: '0.9rem'
-                                }}
+                                style={{ width: '100%', fontSize: 'var(--font-size-xs)', padding: '8px' }}
                             >
                                 {canAfford ? '兑换' : '积分不足'}
                             </button>
@@ -117,42 +118,78 @@ const Shop = () => {
                     );
                 })}
 
-                {/* Add New Reward Button */}
+                {/* Add New Reward */}
                 {!isAddingMode ? (
                     <button
-                        className="card"
                         onClick={() => setIsAddingMode(true)}
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px dashed #ccc', minHeight: '200px' }}
+                        className="card"
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: '160px',
+                            border: '2px dashed rgba(255,255,255,0.2)',
+                            cursor: 'pointer',
+                            background: 'transparent'
+                        }}
                     >
-                        <Plus size={40} color="#ccc" />
-                        <span style={{ color: '#999', marginTop: '10px' }}>添加商品</span>
+                        <Plus size={32} color="var(--color-text-muted)" />
+                        <span style={{ color: 'var(--color-text-muted)', marginTop: '8px', fontSize: 'var(--font-size-sm)' }}>添加奖品</span>
                     </button>
                 ) : (
-                    <div className="card" style={{ border: '2px dashed var(--color-primary)' }}>
-                        <div style={{ marginBottom: '5px' }}>
-                            <div style={{ display: 'flex', gap: '5px', overflowX: 'auto', marginBottom: '5px' }}>
-                                {EMOJI_ICONS.map(icon => (
-                                    <span key={icon} onClick={() => setNewReward({ ...newReward, icon })} style={{ cursor: 'pointer', border: newReward.icon === icon ? '2px solid black' : 'none', borderRadius: '4px' }}>{icon}</span>
-                                ))}
-                            </div>
+                    <div className="card" style={{ border: '2px solid var(--color-primary)' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
+                            {EMOJI_ICONS.map(icon => (
+                                <span
+                                    key={icon}
+                                    onClick={() => setNewReward({ ...newReward, icon })}
+                                    style={{
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        borderRadius: '4px',
+                                        background: newReward.icon === icon ? 'var(--color-primary)' : 'transparent'
+                                    }}
+                                >
+                                    {icon}
+                                </span>
+                            ))}
                         </div>
                         <input
                             type="text"
-                            placeholder="商品名称"
+                            placeholder="奖品名称"
                             value={newReward.name}
                             onChange={e => setNewReward({ ...newReward, name: e.target.value })}
-                            style={{ width: '100%', marginBottom: '5px', padding: '5px' }}
+                            style={{
+                                width: '100%',
+                                marginBottom: '8px',
+                                padding: '8px',
+                                borderRadius: 'var(--radius-sm)',
+                                border: 'var(--glass-border)',
+                                background: 'var(--glass-bg)',
+                                color: 'var(--color-text-primary)',
+                                outline: 'none'
+                            }}
                         />
                         <input
                             type="number"
-                            placeholder="所需积分"
+                            placeholder="积分"
                             value={newReward.points}
                             onChange={e => setNewReward({ ...newReward, points: parseInt(e.target.value) || 0 })}
-                            style={{ width: '100%', marginBottom: '10px', padding: '5px' }}
+                            style={{
+                                width: '100%',
+                                marginBottom: '8px',
+                                padding: '8px',
+                                borderRadius: 'var(--radius-sm)',
+                                border: 'var(--glass-border)',
+                                background: 'var(--glass-bg)',
+                                color: 'var(--color-text-primary)',
+                                outline: 'none'
+                            }}
                         />
-                        <div style={{ display: 'flex', gap: '5px' }}>
-                            <button className="btn btn-primary" onClick={handleAddReward} style={{ flex: 1, padding: '5px' }}>添加</button>
-                            <button className="btn" onClick={() => setIsAddingMode(false)} style={{ padding: '5px' }}>取消</button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <button className="btn btn-primary" onClick={handleAddReward} style={{ flex: 1, padding: '8px', fontSize: 'var(--font-size-xs)' }}>添加</button>
+                            <button className="btn" onClick={() => setIsAddingMode(false)} style={{ padding: '8px', background: 'var(--glass-bg)', color: 'var(--color-text-primary)', fontSize: 'var(--font-size-xs)' }}>取消</button>
                         </div>
                     </div>
                 )}
