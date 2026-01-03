@@ -42,8 +42,9 @@ const VoiceCommandButton = ({ onCommand }) => {
                     language: "zh-CN",
                     maxResults: 1,
                     prompt: "请说出指令...", // Android only
-                    popup: true, // Android only: shows native popup. User wanted "click mic -> speak".
-                    // If "popup: false", we handle UI. If true, Google's dialogn shows.
+                    popup: false, // Changed to false: native UI might crash on some non-GMS devices. 
+                    // We will just listen silently and let our React UI show the animation.
+                    partialResults: true,
                     // User said "program interface doesn't show keyboard", imply maybe native UI is OK?
                     // "user just clicks mic in program to speak".
                     // Let's try popup:false for seamless feel if possible, but popup:true is safer.
