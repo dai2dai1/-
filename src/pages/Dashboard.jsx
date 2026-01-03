@@ -148,12 +148,13 @@ const Dashboard = () => {
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder="在此处语音输入..."
+                                enterKeyHint="send"
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                                         e.preventDefault();
                                         if (inputText.trim()) {
                                             handleVoiceCommand(inputText);
-                                            setInputText('');
+                                            setInputText(''); // Close and clear as requested
                                             setShowKeyboardInput(false);
                                         }
                                     }
